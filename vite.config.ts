@@ -15,19 +15,32 @@ export default defineConfig({
       manifest: {
         name: 'Warmup Calculator',
         short_name: 'Warmup',
+        description:
+          'Calcula las series de calentamiento de Starting Strength para sentadilla, press y peso muerto.',
+        lang: 'es',
         theme_color: '#1a9e75',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
