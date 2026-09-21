@@ -68,6 +68,48 @@ Los resultados de nuestra app y la app original de Glide no coinciden en todos l
 
 Eso nos ayudará a identificar exactamente dónde está la diferencia.
 
+## Tabla completa de calentamientos (CSV)
+
+Para revisar las fórmulas de un vistazo —y para comparar contra la app de Glide sin ir peso a peso— hay un comando que vuelca a CSV **todos** los pesos efectivos de 0,5 en 0,5 kg, para los cuatro modos:
+
+```bash
+npm run warmup:csv
+```
+
+Genera `out/warmup-wide.csv` (ignorado por git): 10–200 kg cada 0,5 kg × 4 modos = 1524 filas, una por peso, con una columna por serie.
+
+```
+ejercicio_id,ejercicio,peso_efectivo_kg,n_series,serie_1,serie_2,serie_3,serie_4,serie_5,aviso
+sentadilla,Sentadilla,100,4,20 kg x5x2,50 kg x4,70 kg x3,90 kg x1,,
+```
+
+El script importa las funciones de `src/lib/formulas.ts`, así que la tabla nunca se desincroniza de lo que muestra la app. Los pesos por debajo del mínimo de cada modo y los mayores de 180 kg salen sin series y con el motivo en la columna `aviso`.
+
+### Opciones
+
+| Opción | Qué hace |
+|---|---|
+| `--format long` | Una fila por serie en vez de por peso, con `peso_serie_kg` y `reps` en columnas aparte (mejor para pivotar o diffear) |
+| `--excel-es` | Separador `;`, decimales con coma y BOM UTF-8, para que Excel en español lo abra bien de doble clic |
+| `--min` / `--max` / `--step` | Acota el barrido, p. ej. `--min 60 --max 120 --step 2.5` |
+| `--exercise <id>` | Filtra un modo; repetible. Ids: `sentadilla`, `press`, `peso-muerto`, `peso-muerto-sin-sentadilla` |
+| `--out <ruta>` | Otro fichero, o `-` para volcar por stdout |
+| `--help` | Lista todas las opciones |
+
+Ejemplos:
+
+```bash
+# Excel en español, todas las series desglosadas
+npm run warmup:csv -- --format long --excel-es
+
+# Solo peso muerto sin sentadilla, tramo alto, por pantalla
+npm run warmup:csv -- --exercise peso-muerto-sin-sentadilla --min 100 --max 180 --out -
+```
+
+Para cazar las discrepancias con Glide: genera el CSV, exporta lo mismo de la app original y haz un `diff` de las dos columnas de series.
+
+Requiere Node 22.18+ o 24+ (el script es TypeScript y lo ejecuta Node directamente, sin dependencias extra).
+
 ## Stack técnico
 
 - React 19 + TypeScript

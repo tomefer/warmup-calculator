@@ -26,3 +26,6 @@ npm-debug.log*
 
 # PWA dev files
 dev-dist/
+
+# Tablas de calentamiento generadas
+out/
