@@ -47,8 +47,10 @@ export function WeightInput({
   }
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+    <div className={cn('flex flex-col gap-3', className)}>
+      {/* Glide pone la etiqueta en 18/600 y el campo como una banda gris sin
+          borde ni esquinas redondeadas. */}
+      <label className="text-lg font-semibold text-[var(--foreground)]">
         {label}
       </label>
       <input
@@ -58,12 +60,9 @@ export function WeightInput({
         onChange={handleChange}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded-lg border border-gray-300 bg-white px-4 py-3',
-          'text-lg font-medium text-gray-900',
-          'placeholder:text-gray-400',
-          'focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20',
-          'dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100',
-          'dark:placeholder:text-gray-500 dark:focus:border-emerald-400'
+          'w-full border-0 bg-[var(--field)] px-4 py-3',
+          'text-base text-[var(--foreground)]',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--ring)]'
         )}
       />
     </div>

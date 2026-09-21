@@ -18,7 +18,7 @@ export default defineConfig({
         description:
           'Calcula las series de calentamiento de Starting Strength para sentadilla, press y peso muerto.',
         lang: 'es',
-        theme_color: '#1a9e75',
+        theme_color: '#01847F',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

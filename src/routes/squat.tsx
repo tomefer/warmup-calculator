@@ -5,6 +5,7 @@ import { calculateSquatPress } from '@/lib/formulas'
 import { useWeightsStore } from '@/store/weights'
 import { WeightInput } from '@/components/WeightInput'
 import { WarmupTable } from '@/components/WarmupTable'
+import { PageHeader } from '@/components/PageHeader'
 
 function SquatPage() {
   const squatWeight = useWeightsStore((s) => s.squatWeight)
@@ -16,26 +17,29 @@ function SquatPage() {
   }, [squatWeight])
 
   return (
-    <div className="mx-auto max-w-md px-4 py-6">
-      <WeightInput
-        value={squatWeight}
-        onChange={setSquatWeight}
-        label={t.input.label}
-        placeholder={t.input.placeholder}
-      />
+    <>
+      <PageHeader title={t.pageTitles.squat} />
+      <div className="mx-auto max-w-md px-4 py-6">
+        <WeightInput
+          value={squatWeight}
+          onChange={setSquatWeight}
+          label={t.input.label}
+          placeholder={t.input.placeholder}
+        />
 
-      {result && (
-        <div className="mt-6">
-          {result.outOfRange ? (
-            <p className="text-center text-red-600 dark:text-red-400">
-              {t.warmup.outOfRange}
-            </p>
-          ) : (
-            <WarmupTable sets={result.sets} />
-          )}
-        </div>
-      )}
-    </div>
+        {result && (
+          <div className="mt-8">
+            {result.outOfRange ? (
+              <p className="text-center text-red-600 dark:text-red-400">
+                {t.warmup.outOfRange}
+              </p>
+            ) : (
+              <WarmupTable sets={result.sets} />
+            )}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 

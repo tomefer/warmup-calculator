@@ -1,34 +1,50 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/geist';
+@import '@fontsource-variable/inter';
 
+/* Paleta copiada de la app original de Glide (warmup-calculator.glide.page).
+   Los valores salen de los estilos computados de esa app, no de un ojo: el
+   teal es su `meta[name=theme-color]` y el resto son los colores que sirve
+   para cabecera, texto y campos. */
 @theme {
-  --color-primary: #1a9e75;
-  --color-primary-dark: #158a66;
-  --color-primary-light: #22b888;
+  --color-primary: #01847f;
+  --color-primary-dark: #016b67;
+  --color-primary-light: #029c96;
 }
 
 :root {
   --background: #ffffff;
-  --foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #1a9e75;
+  /* Glide no usa negro puro ni grises con nombre: son negros translúcidos
+     sobre el fondo, así que se copian tal cual. */
+  --foreground: rgba(0, 0, 0, 0.95);
+  --muted-foreground: rgba(51, 51, 51, 0.7);
+  --field: rgba(51, 51, 51, 0.08);
+  --border: rgba(51, 51, 51, 0.12);
+  --ring: #01847f;
+  /* Barra superior: teal con el filo claro de un píxel que lleva Glide. */
+  --header: #01847f;
+  --header-foreground: #ffffff;
+  --header-foreground-dim: rgba(255, 255, 255, 0.8);
+  --header-active: rgba(255, 255, 255, 0.1);
 }
 
+/* La app de Glide es solo clara. El modo oscuro es nuestro, así que invierte
+   los mismos tonos manteniendo el teal como acento. */
 .dark {
-  --background: #18181b;
-  --foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --border: #3f3f46;
-  --input: #3f3f46;
-  --ring: #22b888;
+  --background: #16191b;
+  --foreground: rgba(255, 255, 255, 0.95);
+  --muted-foreground: rgba(235, 240, 240, 0.6);
+  --field: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.12);
+  --ring: #029c96;
+  --header: #01847f;
+  --header-foreground: #ffffff;
+  --header-foreground-dim: rgba(255, 255, 255, 0.8);
+  --header-active: rgba(255, 255, 255, 0.1);
 }
 
 html {
-  font-family: 'Geist Variable', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

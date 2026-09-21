@@ -5,7 +5,8 @@ import { calculateDeadliftAfterSquat, calculateDeadliftNoSquat } from '@/lib/for
 import { useWeightsStore } from '@/store/weights'
 import { WeightInput } from '@/components/WeightInput'
 import { WarmupTable } from '@/components/WarmupTable'
-import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/PageHeader'
+import { AltModeButton } from '@/components/AltModeButton'
 
 function DeadliftPage() {
   const deadliftWeight = useWeightsStore((s) => s.deadliftWeight)
@@ -23,39 +24,37 @@ function DeadliftPage() {
   }, [deadliftWeight, noSquatMode])
 
   return (
-    <div className="mx-auto max-w-md px-4 py-6">
-      <WeightInput
-        value={deadliftWeight}
-        onChange={setDeadliftWeight}
-        label={t.input.label}
-        placeholder={t.input.placeholder}
-      />
+    <>
+      <PageHeader title={t.pageTitles.deadlift} />
+      <div className="mx-auto max-w-md px-4 py-6">
+        <AltModeButton
+          prompt={t.deadlift.alternativePrompt}
+          active={noSquatMode}
+          onToggle={() => setNoSquatMode(!noSquatMode)}
+        />
 
-      <button
-        type="button"
-        onClick={() => setNoSquatMode(!noSquatMode)}
-        className={cn(
-          'mt-4 w-full rounded-lg px-4 py-3 text-sm font-medium transition-colors',
-          noSquatMode
-            ? 'bg-[#1a9e75] text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-        )}
-      >
-        {t.deadlift.alternativeButton}
-      </button>
-
-      {result && (
-        <div className="mt-6">
-          {result.outOfRange ? (
-            <p className="text-center text-red-600 dark:text-red-400">
-              {t.warmup.outOfRange}
-            </p>
-          ) : (
-            <WarmupTable sets={result.sets} />
-          )}
+        <div className="mt-8">
+          <WeightInput
+            value={deadliftWeight}
+            onChange={setDeadliftWeight}
+            label={t.input.label}
+            placeholder={t.input.placeholder}
+          />
         </div>
-      )}
-    </div>
+
+        {result && (
+          <div className="mt-8">
+            {result.outOfRange ? (
+              <p className="text-center text-red-600 dark:text-red-400">
+                {t.warmup.outOfRange}
+              </p>
+            ) : (
+              <WarmupTable sets={result.sets} />
+            )}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 

@@ -1,13 +1,13 @@
 import { createRootRoute, Outlet, Link, useLocation, Navigate } from '@tanstack/react-router'
 import { ThemeProvider } from 'next-themes'
-import { Dumbbell, ArrowUp, Weight } from 'lucide-react'
+import { SquatIcon, PressIcon, DeadliftIcon } from '@/components/ExerciseIcons'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { path: '/squat', label: t.tabs.squat, icon: Dumbbell },
-  { path: '/press', label: t.tabs.press, icon: ArrowUp },
-  { path: '/deadlift', label: t.tabs.deadlift, icon: Weight },
+  { path: '/squat', label: t.tabs.squat, Icon: SquatIcon },
+  { path: '/press', label: t.tabs.press, Icon: PressIcon },
+  { path: '/deadlift', label: t.tabs.deadlift, Icon: DeadliftIcon },
 ] as const
 
 function RootLayout() {
@@ -20,44 +20,44 @@ function RootLayout() {
 
   return (
     <ThemeProvider defaultTheme="system" attribute="class">
-      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-        <header className="sticky top-0 z-50 flex h-14 items-center gap-3 bg-[#1a9e75] px-4">
-          <img
-            src="/gym-logo.png"
-            alt="Logo"
-            className="h-10 w-10 rounded-lg"
-          />
-          <span className="text-lg font-medium text-white">{t.appName}</span>
+      <div className="flex min-h-screen flex-col bg-[var(--background)]">
+        {/* Cabecera teal con el logo de la app, igual que en Glide: 56 px de
+            alto y el filo claro de un píxel por debajo. */}
+        <header
+          className="sticky top-0 z-50 flex h-14 items-center gap-2.5 bg-[var(--header)] px-4"
+          style={{ boxShadow: 'rgba(255, 255, 255, 0.05) 0px 1px 0px 0px' }}
+        >
+          <img src="/glide-logo.png" alt="" className="h-6 w-6 rounded" />
+          <span className="text-base font-semibold text-[var(--header-foreground)]">
+            {t.appName}
+          </span>
         </header>
 
-        <main className="flex-1 pb-20">
+        <main className="flex-1 pb-24">
           <Outlet />
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="mx-auto flex max-w-md justify-around">
-            {tabs.map((tab) => {
-              const isActive = location.pathname === tab.path
-              const Icon = tab.icon
+        {/* Glide pone las pestañas dentro de la barra teal; aquí van abajo,
+            que es donde caen en una PWA de móvil, pero con su mismo teal y su
+            píldora blanca translúcida para la activa. */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--header)] pb-[env(safe-area-inset-bottom)]">
+          <div className="mx-auto flex max-w-md justify-around gap-1 px-2 py-2">
+            {tabs.map(({ path, label, Icon }) => {
+              const isActive = location.pathname === path
 
               return (
                 <Link
-                  key={tab.path}
-                  to={tab.path}
+                  key={path}
+                  to={path}
                   className={cn(
-                    'flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors',
+                    'flex flex-1 flex-col items-center gap-1 rounded-lg py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'text-[#1a9e75]'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                      ? 'bg-[var(--header-active)] text-[var(--header-foreground)]'
+                      : 'text-[var(--header-foreground-dim)] hover:bg-[var(--header-active)]'
                   )}
                 >
-                  <Icon
-                    size={24}
-                    className={cn(
-                      isActive ? 'text-[#1a9e75]' : 'text-gray-400 dark:text-gray-500'
-                    )}
-                  />
-                  <span>{tab.label}</span>
+                  <Icon size={20} />
+                  <span>{label}</span>
                 </Link>
               )
             })}
