@@ -10,16 +10,14 @@ import { cn } from '@/lib/utils'
 function PressPage() {
   const pressWeight = useWeightsStore((s) => s.pressWeight)
   const setPressWeight = useWeightsStore((s) => s.setPressWeight)
-  const pressAltWeight = useWeightsStore((s) => s.pressAltWeight)
-  const setPressAltWeight = useWeightsStore((s) => s.setPressAltWeight)
 
   const [altMode, setAltMode] = useState(false)
 
+  // Los dos modos parten del mismo dato —el peso de la serie efectiva del press
+  // que toca ahora—, así que comparten input y peso guardado: el botón solo
+  // cambia de fórmula (y la etiqueta, para que se note que ha hecho algo).
   const result = useMemo(() => {
     if (pressWeight === null || pressWeight <= 0) return null
-
-    // El modo "press previo" solo cambia las repeticiones, no los pesos, así
-    // que `pressAltWeight` no entra en el cálculo: se guarda como recordatorio.
     return altMode
       ? calculatePressAfterPress(pressWeight)
       : calculateSquatPress(pressWeight)
@@ -30,7 +28,8 @@ function PressPage() {
       <WeightInput
         value={pressWeight}
         onChange={setPressWeight}
-        label={t.input.label}
+        label={altMode ? t.press.alternativeInputLabel : t.input.label}
+        emphasizeLabel={altMode}
         placeholder={t.input.placeholder}
       />
 
@@ -46,17 +45,6 @@ function PressPage() {
       >
         {t.press.alternativeButton}
       </button>
-
-      {altMode && (
-        <div className="mt-4">
-          <WeightInput
-            value={pressAltWeight}
-            onChange={setPressAltWeight}
-            label={t.press.alternativeLabel}
-            placeholder={t.input.placeholder}
-          />
-        </div>
-      )}
 
       {result && (
         <div className="mt-6">

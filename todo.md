@@ -264,6 +264,9 @@ válido se mantenga hasta que se escriba un peso nuevo. Ojo: `onChange` está ti
 > vez. El input del press anterior se mantiene visible, por decisión del usuario, pero
 > no entra en el cálculo. Cubierto en `formulas.test.ts`; verificado en el navegador.
 > El punto 2 de "Información que falta" ya no necesita este dato.
+>
+> **Actualización (BUG-13):** ese segundo input se ha eliminado. Confundía más de lo que
+> recordaba, porque parecía el sitio donde escribir el peso nuevo.
 
 **Fichero:** `src/routes/press.tsx:22`
 
@@ -408,6 +411,32 @@ y conviene quitarlo de `src/store/weights.ts` y de `src/lib/storage.ts`.
 
 **Requiere confirmación:** comprobar en la app original si el modo "sin sentadilla" pide de verdad un
 segundo número distinto del peso efectivo. La etiqueta actual sugiere que alguien lo entendió así.
+
+---
+
+### [x] BUG-13 — Press: el segundo input no alimenta nada — **RESUELTO**
+
+> **Resuelto el 2026-09-21.** Mismo patrón que BUG-09, ahora en press: un único `WeightInput`
+> y un único `pressWeight`; el botón cambia de fórmula y de etiqueta. `pressAltWeight` eliminado
+> del store y de `storage.ts`, y `t.press.alternativeLabel` de `i18n.ts`.
+>
+> Queda huérfana la clave `warmup_press_alt_weight` en el localStorage de quien ya usara la app.
+> Es inerte: nadie la lee.
+
+**Fichero:** `src/routes/press.tsx:50`; etiquetas en `src/lib/i18n.ts`
+
+**Síntoma:** al pulsar "Si has hecho press antes, dale aquí" aparecía un segundo input. El cálculo
+solo hacía caso del input principal, pero el nuevo campo —vacío y debajo del botón que se acaba de
+pulsar— parecía justamente el sitio donde meter el peso del press de hoy. Escribir ahí no cambiaba
+nada.
+
+**Arreglo aplicado:** no se pinta un input nuevo. La etiqueta del input principal pasa a
+"Introduce el peso de tu segundo press del día:" **en negrita** (`emphasizeLabel` en
+`WeightInput`), de forma que el usuario ve que ha tocado algo sin que aparezca un campo que no
+alimenta el cálculo.
+
+Descartada la opción de Glide —navegar a otra pantalla—: el peso ya está escrito, y cambiar de
+pantalla obliga a reescribirlo.
 
 ---
 

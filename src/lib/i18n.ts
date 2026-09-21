@@ -17,7 +17,7 @@ export const t = {
   },
   press: {
     alternativeButton: 'Si has hecho press antes, dale aquí',
-    alternativeLabel: 'Introduce el peso del press anterior:',
+    alternativeInputLabel: 'Introduce el peso de tu segundo press del día:',
   },
   deadlift: {
     alternativeButton: 'Si NO has hecho sentadilla, dale aquí',

@@ -6,6 +6,8 @@ interface WeightInputProps {
   value: number | null
   onChange: (value: number | null) => void
   label: string
+  /** Resalta la etiqueta cuando el modo activo cambia lo que se pide. */
+  emphasizeLabel?: boolean
   placeholder?: string
   className?: string
 }
@@ -14,6 +16,7 @@ export function WeightInput({
   value,
   onChange,
   label,
+  emphasizeLabel = false,
   placeholder = 'kg',
   className,
 }: WeightInputProps) {
@@ -48,7 +51,12 @@ export function WeightInput({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label
+        className={cn(
+          'text-sm font-medium text-gray-700 dark:text-gray-300',
+          emphasizeLabel && 'font-bold text-gray-900 dark:text-gray-100'
+        )}
+      >
         {label}
       </label>
       <input
