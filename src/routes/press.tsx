@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { t } from '@/lib/i18n'
-import { calculateSquatPress } from '@/lib/formulas'
+import { calculatePressAfterPress, calculateSquatPress } from '@/lib/formulas'
 import { useWeightsStore } from '@/store/weights'
 import { WeightInput } from '@/components/WeightInput'
 import { WarmupTable } from '@/components/WarmupTable'
@@ -18,14 +18,12 @@ function PressPage() {
   const result = useMemo(() => {
     if (pressWeight === null || pressWeight <= 0) return null
 
-    if (altMode && pressAltWeight !== null && pressAltWeight > 0) {
-      // TODO: Implement alternative warmup logic using pressAltWeight
-      // For now, use the same formula
-      return calculateSquatPress(pressWeight)
-    }
-
-    return calculateSquatPress(pressWeight)
-  }, [pressWeight, pressAltWeight, altMode])
+    // El modo "press previo" solo cambia las repeticiones, no los pesos, así
+    // que `pressAltWeight` no entra en el cálculo: se guarda como recordatorio.
+    return altMode
+      ? calculatePressAfterPress(pressWeight)
+      : calculateSquatPress(pressWeight)
+  }, [pressWeight, altMode])
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">

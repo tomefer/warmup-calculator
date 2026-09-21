@@ -91,6 +91,33 @@ export function calculateSquatPress(effective: number): WarmupResult {
   return { sets, outOfRange: false }
 }
 
+/**
+ * Press cuando ya se ha hecho otro press antes (militar tras banca o al revés).
+ *
+ * Los pesos son exactamente los del press normal: lo único que cambia son las
+ * repeticiones, porque ya se llega caliente. La serie base baja de dos series
+ * de 5 a una sola, y las de arriba pasan a 2, 1 y 1.
+ *
+ *   normal:  set0 x5x2 | set1 x4 | set2 x3 | [set3 x2] | último x1
+ *   previo:  set0 x5   | set1 x2 | set2 x1 | [set3 x1] | último x1
+ *
+ * Se deriva del press normal en lugar de duplicar las fórmulas, para que
+ * cualquier corrección de pesos valga para los dos modos a la vez.
+ */
+export function calculatePressAfterPress(effective: number): WarmupResult {
+  const base = calculateSquatPress(effective)
+
+  if (base.outOfRange) return base
+  if (base.sets.some((s) => s.weight === 'tooLight')) return base
+
+  const sets = base.sets.map((set, i) => ({
+    weight: set.weight,
+    reps: i === 0 ? 'x5' : i === 1 ? 'x2' : 'x1',
+  }))
+
+  return { sets, outOfRange: false }
+}
+
 function getDeadliftNoSquatBaseWeight(effective: number): number {
   if (effective >= 120) return 60
   if (effective >= 100) return 50

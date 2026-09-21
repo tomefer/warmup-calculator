@@ -43,6 +43,23 @@ El calentamiento se construye en 4-5 series partiendo de un peso base (`set0`) h
 **Serie última (×1):**
 Aproximación al 90% del efectivo con redondeo fino según tramos.
 
+#### Press con press previo
+
+Cuando ya has hecho otro press antes (militar tras banca o al revés), **los pesos
+son exactamente los del press normal**: lo único que baja son las repeticiones,
+porque ya llegas caliente. La serie base pasa de dos series de 5 a una sola.
+
+| Serie | Press normal | Con press previo |
+|---|---|---|
+| Base (set0) | ×5 ×2 | ×5 |
+| Set 1 | ×4 | ×2 |
+| Set 2 | ×3 | ×1 |
+| Set 3 (si ≥ 112.5 kg) | ×2 | ×1 |
+| Última | ×1 | ×1 |
+
+El input "peso del press anterior" se guarda pero no entra en el cálculo: sirve
+de recordatorio.
+
 #### Peso muerto sin sentadilla previa
 
 Añade una serie -1 de "RDL con barra vacía" (×8). El peso base es más alto que en sentadilla. Las intermedias interpolan igual pero con umbrales distintos.
@@ -55,9 +72,13 @@ El peso base es menor (la sentadilla ya ha calentado). Solo 2 series intermedias
 
 Los resultados de nuestra app y la app original de Glide no coinciden en todos los casos. Sospechamos que puede ser por:
 
-1. El orden exacto de redondeo en las series intermedias
-2. Los umbrales de tramos de la serie última
-3. La lógica del modo "press con press previo" (aún sin implementar correctamente)
+1. **Series duplicadas en sentadilla/press a partir de 112.5 kg.** En
+   `src/lib/formulas.ts`, `set2` y `set3` usan la misma fórmula —
+   `min(ceil(0.8 × efectivo), 140)` — así que salen siempre iguales. A 120 kg la
+   app muestra `97.5 ×3` y `97.5 ×2` seguidas. Es el sospechoso número uno, y se
+   resuelve con un solo dato: qué muestra Glide para una sentadilla de 120 kg.
+2. El orden exacto de redondeo en las series intermedias
+3. Los umbrales de tramos de la serie última
 4. La lógica del modo "peso muerto con sentadilla previa" en pesos altos
 
 **Si ves alguna discrepancia, abre un issue con:**
@@ -86,3 +107,36 @@ npm run dev
 ```
 
 Abre [http://localhost:5173](http://localhost:5173).
+
+## Tests
+
+```bash
+npm test          # una pasada
+npm run test:watch
+```
+
+Tres ficheros, con papeles distintos:
+
+- **`src/lib/formulas.test.ts`** — tests de caracterización. Tablas de
+  `peso efectivo → series` que registran lo que la app hace **hoy**, bugs
+  incluidos. No son la verdad: son una red de seguridad para refactorizar sin
+  cambiar resultados sin querer.
+- **`src/lib/formulas.invariants.test.ts`** — propiedades que deben cumplirse
+  sea cual sea la fórmula (el peso nunca baja entre series, todo es múltiplo de
+  2.5 kg, la última serie no supera la efectiva). Aquí está también la lista de
+  series duplicadas conocidas.
+- **`src/lib/glide-parity.test.ts`** — paridad con la app original, la única
+  fuente de verdad. Lee los casos de
+  `src/lib/__fixtures__/glide-reference.ts`, que **está vacío a la espera de
+  datos**.
+
+### Cómo cazar una discrepancia
+
+1. Abre la app de Glide y apunta un caso: modo, peso efectivo y las series que
+   muestra.
+2. Añade la fila a `src/lib/__fixtures__/glide-reference.ts` (el fichero explica
+   el formato).
+3. `npm test`. Si falla, tienes la discrepancia localizada con nombre y
+   apellidos.
+4. Corrige la fórmula, y actualiza la fila correspondiente de
+   `formulas.test.ts`.
