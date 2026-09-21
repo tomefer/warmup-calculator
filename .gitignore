@@ -36,3 +36,6 @@ vite.config.d.ts
 
 # Tablas de calentamiento generadas
 out/
+
+# Worktrees de Claude Code
+.claude/worktrees/

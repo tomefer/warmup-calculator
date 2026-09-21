@@ -28,10 +28,9 @@ historial de git**. Por tanto:
 
 ### Verificación numérica
 
-No hay tests. `vitest` está en `devDependencies` pero no hay ni script `test` ni ficheros de test.
-Antes de tocar `src/lib/formulas.ts`, merece la pena añadir `"test": "vitest run"` a los scripts y
-crear `src/lib/formulas.test.ts` con los casos de la sección "Evidencia" de cada bug, de forma que
-los cambios se comparen contra una tabla fija en vez de a ojo. Ver BUG-10.
+~~No hay tests.~~ **Ya los hay** (2026-09-21, ver BUG-10): `npm test` corre 154 casos. Antes de tocar
+`src/lib/formulas.ts`, lánzalos para tener el "antes"; después, el diff de los tests que fallen es
+exactamente el efecto de tu cambio.
 
 Invariantes que se comprobaron simulando los tres cálculos de 5 a 180 kg en pasos de 2.5 kg:
 
@@ -48,6 +47,13 @@ Invariantes que se comprobaron simulando los tres cálculos de 5 a 180 kg en pas
 ## Prioridad alta
 
 ### [ ] BUG-01 — La serie ×3 y la ×2 dan el mismo peso en sentadilla/press ≥112.5 kg
+
+> **Confirmado por partida doble** (2026-09-21): detectado también de forma independiente
+> al montar la suite de tests. La lista de pesos afectados está fijada en
+> `formulas.invariants.test.ts`, así que al arreglarlo el test fallará y habrá que
+> recortarla. Sigue **bloqueado**: qué peso da Glide a 120 kg es el dato que falta.
+> Ojo: desde que existe `calculatePressAfterPress`, este bug afecta también al modo
+> "press previo", que hereda los pesos.
 
 **Fichero:** `src/lib/formulas.ts:77` (y `:82` para comparar)
 
@@ -184,7 +190,16 @@ válido se mantenga hasta que se escriba un peso nuevo. Ojo: `onChange` está ti
 
 ---
 
-### [ ] BUG-08 — El modo "press previo" no está implementado
+### [x] BUG-08 — El modo "press previo" no está implementado — **RESUELTO**
+
+> **Resuelto el 2026-09-21** en `calculatePressAfterPress` (`src/lib/formulas.ts`).
+> El usuario aportó la regla que faltaba: **los pesos no cambian**, solo bajan las
+> repeticiones. La serie base pasa de dos series de 5 a una sola, y las de arriba a
+> 2, 1 y 1 (y 1 más en el tramo ≥112.5 kg). Se deriva de `calculateSquatPress` en vez
+> de duplicar fórmulas, así que arreglar BUG-01 o BUG-02 corrige los dos modos a la
+> vez. El input del press anterior se mantiene visible, por decisión del usuario, pero
+> no entra en el cálculo. Cubierto en `formulas.test.ts`; verificado en el navegador.
+> El punto 2 de "Información que falta" ya no necesita este dato.
 
 **Fichero:** `src/routes/press.tsx:22`
 
@@ -202,13 +217,17 @@ if (altMode && pressAltWeight !== null && pressAltWeight > 0) {
 }
 ```
 
-**Arreglo:** hace falta la fórmula real. No existe en `src/lib/formulas.ts` ni se puede deducir de lo
-que hay. El README ya lo lista como discrepancia conocida nº 3. **Bloqueado hasta tener la fórmula
-del Glide original** (ver "Información que falta").
+**Arreglo aplicado:**
 
-Mientras no se tenga: es preferible ocultar el botón o marcarlo como "en construcción" antes que
-mostrar un resultado que el usuario cree que es el modo alternativo y no lo es. Ahora mismo la app
-muestra un resultado normal haciéndolo pasar por el alternativo.
+| Serie | Press normal | Con press previo |
+|---|---|---|
+| Base (set0) | ×5 ×2 | ×5 |
+| Set 1 | ×4 | ×2 |
+| Set 2 | ×3 | ×1 |
+| Set 3 (si ≥ 112.5 kg) | ×2 | ×1 |
+| Última | ×1 | ×1 |
+
+Salida a 60 kg: `20 x5 | 30 x2 | 42.5 x1 | 55 x1`.
 
 ---
 
@@ -318,6 +337,10 @@ segundo número distinto del peso efectivo. La etiqueta actual sugiere que algui
 
 ### [ ] BUG-05 — Series duplicadas en pesos bajos
 
+> Las tres listas de pesos afectados están fijadas en `formulas.invariants.test.ts`
+> (2026-09-21). Sigue en pie el "no tocar sin confirmar": si Glide produce lo mismo,
+> el arreglo es cerrar el bug, no cambiar la fórmula.
+
 **Fichero:** `src/lib/formulas.ts`, las tres funciones de cálculo
 
 **Síntoma:** en pesos efectivos bajos, dos o tres series consecutivas muestran el mismo peso, porque
@@ -351,16 +374,25 @@ son justo los que más miran la app.
 
 ## Prioridad baja
 
-### [ ] BUG-10 — No hay tests pese a tener vitest instalado
+### [x] BUG-10 — No hay tests — **RESUELTO**
 
-`vitest` está en `devDependencies` de `package.json` pero no hay script `test` ni ningún fichero de
-test. Dado que el problema central del proyecto es la exactitud numérica frente a otra app, lo lógico
-es fijar en un test una tabla de casos conocidos (peso efectivo → series esperadas) y contrastar
-contra ella cada cambio en `src/lib/formulas.ts`.
-
-Sugerencia: `src/lib/formulas.test.ts` con (a) los valores de referencia que dé el usuario desde la
-app original, y (b) los invariantes de la tabla de arriba —sin duplicados, no decreciente, múltiplos
-de 2.5, última serie por debajo del peso efectivo— aplicados en bucle de 5 a 180 kg.
+> **Resuelto el 2026-09-21.** `npm test` → 154 tests. Corrección al enunciado original:
+> `vitest` **no** estaba en `devDependencies` en `efda391`; se instaló ese mismo día, en
+> paralelo a esta auditoría.
+>
+> Tres ficheros, con papeles distintos:
+>
+> - `src/lib/formulas.test.ts` — caracterización: 34 pesos × 4 modos, fijando lo que la
+>   app hace hoy, **bugs incluidos**. Es la red de seguridad para tocar las fórmulas.
+> - `src/lib/formulas.invariants.test.ts` — los invariantes de la tabla de arriba en
+>   bucle de 2.5 a 180 kg, más la lista de duplicados conocidos (BUG-01 y BUG-05).
+> - `src/lib/glide-parity.test.ts` — paridad contra Glide, leyendo
+>   `src/lib/__fixtures__/glide-reference.ts`. **Vacío**: es donde hay que volcar los
+>   datos del punto 2 de "Información que falta".
+>
+> **Punto ciego conocido:** el invariante de múltiplos de 2.5 recorre solo entradas
+> múltiplo de 2.5, así que hoy **no** detecta BUG-04. Para cubrirlo hay que barrer en
+> pasos de 0.5, y entonces el test falla — a propósito, hasta que BUG-04 se arregle.
 
 ### [ ] BUG-11 — El modo alternativo se pierde al cambiar de pestaña
 
@@ -383,7 +415,7 @@ Estos puntos no se pueden resolver leyendo el código. Hay que pedírselos al us
 2. Si no hay JSON, **capturas o tablas de la app original** para estos pesos efectivos, que son
    justo donde el código es incoherente:
    - Sentadilla: 112.5, 120, 140, 160, 180 kg → fija BUG-01 y BUG-02.
-   - Press en modo "press previo": 40, 60, 80 kg con varios pesos de press anterior → desbloquea BUG-08.
+   - ~~Press en modo "press previo"~~ → **ya no hace falta**: el usuario aportó la regla, BUG-08 resuelto.
    - Peso muerto sin sentadilla y con sentadilla: 120, 140, 180 kg.
 3. **Qué pide exactamente el segundo input** del modo "sin sentadilla" en la app original (BUG-09).
 4. Si la app original **acepta decimales** en el input y qué hace con un peso como 46 kg (BUG-04).
