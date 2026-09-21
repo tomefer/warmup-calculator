@@ -6,6 +6,27 @@ y la app original de Glide** (ver sección "Discrepancias conocidas" del README)
 Auditoría hecha el 2026-09-21 sobre el commit `efda391`. `npx tsc --noEmit` pasa limpio: ninguno de
 estos bugs es un error de tipos, todos son de lógica o de comportamiento.
 
+> ## ⚠️ Ya hay datos reales de Glide (2026-09-21)
+>
+> `reference/glide-results.csv` tiene 32 casos capturados de la app original, y
+> `npm test` los contrasta caso por caso. Eso cambia cómo se trabaja este documento:
+> **antes de aplicar cualquier "arreglo propuesto", mira si los datos lo respaldan.**
+> Ya ha pasado con BUG-02, cuyo arreglo propuesto rompería tres casos que hoy pasan.
+>
+> El desglose de las 23 discrepancias vivas está en `reference/glide-notas.md`, y
+> agrupa en **cinco causas** que este documento no tenía identificadas. Dos de ellas
+> no corresponden a ningún BUG de la lista de abajo:
+>
+> - **Las reps van por posición y deberían ir por escalera.** Emitimos `x3` fijo en
+>   la serie 2 pase lo que pase; en Glide las reps descienden hasta `x1` según
+>   cuántas series haya, así que con 4 series se pasa de `x4` a `x2` y el `x3` no
+>   aparece. Es la causa de 14 de las 23 discrepancias — la más grande de todas.
+> - **El press muestra `x5x2` donde Glide muestra `x5`.** `press.tsx` reutiliza
+>   `calculateSquatPress`, y ese `x5x2` es la etiqueta de *sentadilla*. Afecta a los
+>   6 casos de press.
+>
+> Lo que ya coincide al 100%: peso muerto sin sentadilla, reps incluidas.
+
 ## Cómo trabajar este documento
 
 1. Coge un bug empezando por los de prioridad **alta**.
@@ -48,12 +69,23 @@ Invariantes que se comprobaron simulando los tres cálculos de 5 a 180 kg en pas
 
 ### [ ] BUG-01 — La serie ×3 y la ×2 dan el mismo peso en sentadilla/press ≥112.5 kg
 
-> **Confirmado por partida doble** (2026-09-21): detectado también de forma independiente
-> al montar la suite de tests. La lista de pesos afectados está fijada en
-> `formulas.invariants.test.ts`, así que al arreglarlo el test fallará y habrá que
-> recortarla. Sigue **bloqueado**: qué peso da Glide a 120 kg es el dato que falta.
-> Ojo: desde que existe `calculatePressAfterPress`, este bug afecta también al modo
-> "press previo", que hereda los pesos.
+> **CONFIRMADO POR LOS DATOS DE GLIDE — y ya no está bloqueado** (2026-09-21).
+> `reference/glide-results.csv` zanja las dos preguntas abiertas de esta sección:
+>
+> | Peso | Glide `x3` | Nosotros | `min(ceilTo2_5(0.7 × ef), 100)` |
+> |---:|---:|---:|---:|
+> | 112.5 | 80 | 90 | **80** |
+> | 140 | 100 | 112.5 | **100** |
+> | 180 | 100 | 140 | **100** |
+>
+> La hipótesis del `0.7` era correcta, **y sí lleva tope: 100 kg** (es lo que pedía
+> confirmar el "Requiere confirmación" de abajo — a 180 kg Glide da 100, no 126).
+> La serie `x2` sí coincide con `min(ceilTo2_5(0.8 × ef), 140)` en los tres casos:
+> la fórmula del 0.8 se copió una serie de más.
+>
+> Arreglar esto cierra también `pressAfterPress@140`, que hereda los pesos.
+> Al hacerlo fallará la lista de duplicados de `formulas.invariants.test.ts`, que
+> habrá que recortar, y habrá que regenerar la baseline con `npm run glide:compare`.
 
 **Fichero:** `src/lib/formulas.ts:77` (y `:82` para comparar)
 
@@ -91,7 +123,25 @@ intermedias en 100 kg). Con `0.7` sin tope, a 180 kg la ×3 sale 126 kg.
 
 ---
 
-### [ ] BUG-02 — La serie ×4 se queda congelada en 60 kg por encima de 112.5 kg
+### [~] BUG-02 — La serie ×4 congelada en 60 kg — **NO ES UN BUG, NO TOCAR**
+
+> **Refutado por los datos de Glide** (2026-09-21). La app original **también**
+> congela la serie ×4 en 60 kg en todo el tramo alto:
+>
+> | Peso | Glide `x4` | Nosotros |
+> |---:|---:|---:|
+> | 112.5 | 60 | 60 ✓ |
+> | 140 | 60 | 60 ✓ |
+> | 180 | 60 | 60 ✓ |
+>
+> La constante hardcodeada era fiel al original, no un descuido. El arreglo que
+> propone esta sección —`min(ceilTo2_5(0.5 × ef), 100)`— daría 57.5 / 70 / 90 y
+> **rompería los tres casos, que hoy pasan**.
+>
+> Se deja escrito lo de abajo tal cual porque el razonamiento era razonable con la
+> información que había: las otras dos fórmulas sí escalan en ese tramo. Pero el
+> contraste con la app real dice que aquí no. Es justo el motivo por el que la
+> cabecera de este documento pide no inventar números.
 
 **Fichero:** `src/lib/formulas.ts:66`
 
@@ -435,14 +485,21 @@ Si se considera parte del estado del usuario, llevarlo al store de Zustand junto
 
 ## Información que falta
 
-Estos puntos no se pueden resolver leyendo el código. Hay que pedírselos al usuario:
+Estos puntos no se pueden resolver leyendo el código. Hay que pedírselos al usuario.
 
-1. **El JSON de configuración de Glide**, si aún se puede exportar. Resolvería de golpe los bugs
-   01, 02, 03, 05 y 08 sin conjeturas.
-2. Si no hay JSON, **capturas o tablas de la app original** para estos pesos efectivos, que son
-   justo donde el código es incoherente:
-   - Sentadilla: 112.5, 120, 140, 160, 180 kg → fija BUG-01 y BUG-02.
-   - ~~Press en modo "press previo"~~ → **ya no hace falta**: el usuario aportó la regla, BUG-08 resuelto.
-   - Peso muerto sin sentadilla y con sentadilla: 120, 140, 180 kg.
-3. **Qué pide exactamente el segundo input** del modo "sin sentadilla" en la app original (BUG-09).
+**Casi todo lo que pedía esta sección ya está** en `reference/glide-results.csv` (32 casos,
+capturados el 2026-09-21):
+
+1. ~~**El JSON de configuración de Glide**~~ → no hizo falta: las capturas bastaron.
+2. ~~**Capturas de la app original**~~ → hechas. Sentadilla a 112.5 / 140 / 180 fijó BUG-01 y
+   refutó BUG-02; peso muerto en ambos modos, cubierto; press previo, cubierto.
+3. ~~**Qué pide el segundo input** del modo "sin sentadilla"~~ → resuelto por lectura del código
+   al cerrar BUG-09: siempre fue el peso de la serie efectiva; la etiqueta era el error.
 4. Si la app original **acepta decimales** en el input y qué hace con un peso como 46 kg (BUG-04).
+   **Sigue abierto**: las capturas son todas de pesos múltiplo de 2.5.
+
+Lo que aún convendría capturar, según `reference/glide-notas.md`:
+
+- Pesos entre 100 y 112.5 kg, para fijar dónde salta exactamente a 5 series.
+- Algo por debajo de 15 kg: nuestro `tooLight` no está contrastado con nada.
+- 181–184 kg, para fijar el corte superior con precisión.
