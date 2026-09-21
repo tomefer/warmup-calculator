@@ -70,16 +70,27 @@ El peso base es menor (la sentadilla ya ha calentado). Solo 2 series intermedias
 
 ### ⚠️ Discrepancias conocidas
 
-Los resultados de nuestra app y la app original de Glide no coinciden en todos los casos. Sospechamos que puede ser por:
+Los resultados de nuestra app y los de la app original de Glide no coinciden en
+todos los casos. Ya no es una sospecha: están **medidas y contadas** en
+[`discrepancies.md`](discrepancies.md), que se regenera con `npm run glide:compare`
+comparando contra la captura de Glide de [`reference/glide-results.csv`](reference/glide-results.csv).
 
-1. **Series duplicadas en sentadilla/press a partir de 112.5 kg.** En
-   `src/lib/formulas.ts`, `set2` y `set3` usan la misma fórmula —
-   `min(ceil(0.8 × efectivo), 140)` — así que salen siempre iguales. A 120 kg la
-   app muestra `97.5 ×3` y `97.5 ×2` seguidas. Es el sospechoso número uno, y se
-   resuelve con un solo dato: qué muestra Glide para una sentadilla de 120 kg.
-2. El orden exacto de redondeo en las series intermedias
-3. Los umbrales de tramos de la serie última
-4. La lógica del modo "peso muerto con sentadilla previa" en pesos altos
+A día de hoy son 23 fallos sobre 32 casos capturados, y salen de cinco causas:
+
+1. **Las reps están fijadas por posición y en Glide dependen del número de
+   series.** Con 4 series Glide va `x5x2, x4, x2, x1`; nosotros metemos un `x3`
+   donde va el `x2`. Es la causa de 14 de los 23 fallos.
+2. **El press muestra `x5x2` en la primera serie**, que es la etiqueta de
+   sentadilla; en Glide es `x5`.
+3. **Series duplicadas en sentadilla/press a partir de 112,5 kg.** `set2` y
+   `set3` usan la misma fórmula, `min(ceil(0.8 × efectivo), 140)`. La captura
+   confirma que la serie `x3` debería ser `min(ceil(0.7 × efectivo), 100)`.
+4. **Peso muerto tras sentadilla**: misma causa que (1) con 3 series.
+5. **Peso muerto tras sentadilla a 140 kg**: damos dos `x1` seguidas.
+
+El análisis largo, con las tablas de qué da cada uno, está en
+[`reference/glide-notas.md`](reference/glide-notas.md) (que se copia dentro de
+`discrepancies.md`).
 
 **Si ves alguna discrepancia, abre un issue con:**
 - El ejercicio y modo (sentadilla / press normal / press con press previo / peso muerto con sentadilla / peso muerto sin sentadilla)
@@ -127,9 +138,73 @@ npm run warmup:csv -- --format long --excel-es
 npm run warmup:csv -- --exercise peso-muerto-sin-sentadilla --min 100 --max 180 --out -
 ```
 
-Para cazar las discrepancias con Glide: genera el CSV, exporta lo mismo de la app original y haz un `diff` de las dos columnas de series.
-
 Requiere Node 22.18+ o 24+ (el script es TypeScript y lo ejecuta Node directamente, sin dependencias extra).
+
+## Comparación contra la app de Glide
+
+`npm run warmup:csv` dice qué hace nuestra app. Para saber **en qué se diferencia
+de Glide** hay un segundo comando, que no hay que ir cruzando a mano:
+
+```bash
+npm run glide:compare
+```
+
+Lee la captura de Glide de `reference/glide-results.csv`, calcula lo nuestro para
+esos mismos inputs, enfrenta las dos columnas y escribe:
+
+| Fichero | Qué es |
+|---|---|
+| `discrepancies.md` | El informe: resumen por modo, patrones, el análisis a mano y caso por caso. **Versionado** |
+| `reference/glide-baseline.json` | La foto de las discrepancias aceptadas hoy. **Versionado** |
+| `out/nuestro-mismos-inputs.csv` | Nuestras series para cada input de la captura |
+| `out/comparacion-glide.csv` | `modo, peso, glide, nuestro, estado, diferencias` |
+
+Por pantalla imprime los casos que fallan, con la diferencia explicada serie a
+serie:
+
+```
+  Peso muerto (después de sentadilla) @ 60 kg
+    Glide:    40 x5 | 47.5 x2 | 55 x1
+    Nosotros: 40 x5 | 47.5 x3 | 55 x1
+    · Serie 2 (reps): Glide "47.5 x2", nosotros "47.5 x3".
+```
+
+### Se comprueba en cada build
+
+`npm run build` ejecuta antes `npm run glide:check`, que recalcula la comparación
+y la contrasta con la baseline **sin escribir nada**. El build se para si la lista
+de discrepancias cambia, en cualquiera de los dos sentidos:
+
+- **REGRESIÓN** — un caso que coincidía con Glide ha dejado de coincidir.
+- **ARREGLADO** / **CAMBIADO** — una discrepancia conocida ha desaparecido o da
+  otra cosa. Es buena noticia, pero hay que actualizar el informe.
+
+En los dos casos la salida a arreglarlo es la misma: `npm run glide:compare`,
+revisar el diff de `discrepancies.md` y `reference/glide-baseline.json`, y
+commitearlo con el cambio que lo provocó. Así el informe nunca miente sobre el
+estado del código.
+
+### Añadir casos a la captura
+
+Cuantos más pesos haya en `reference/glide-results.csv`, más fina es la
+comparación. Se añade una fila por caso:
+
+```
+modo,peso_efectivo_kg,series,fuente,nota
+squat,120,20 x5x2 | 60 x4 | 85 x3 | 97.5 x2 | 107.5 x1,captura 2026-10-01,
+```
+
+- `modo`: `squat`, `press`, `pressAfterPress`, `deadliftAfterSquat` o
+  `deadliftNoSquat`.
+- `series`: lo que pinta Glide, separado por `|`. Si no calcula el peso,
+  `OUT_OF_RANGE`.
+- Se tolera cómo lo escribe Glide: coma decimal, ceros de más (`60,00`), el
+  sufijo ` kg`, el asterisco de la nota al pie (`x5x2*`) y el literal
+  `RDL con barra vacía`.
+
+Después, `npm run glide:compare` para meter los casos nuevos en el informe y en
+la baseline. La materia prima de la captura actual —las tablas tal y como las pinta Glide,
+sin normalizar— está en [`docs/glide-captura-2026-09-21.md`](docs/glide-captura-2026-09-21.md).
 
 ## Stack técnico
 
@@ -168,17 +243,21 @@ Tres ficheros, con papeles distintos:
   2.5 kg, la última serie no supera la efectiva). Aquí está también la lista de
   series duplicadas conocidas.
 - **`src/lib/glide-parity.test.ts`** — paridad con la app original, la única
-  fuente de verdad. Lee los casos de
-  `src/lib/__fixtures__/glide-reference.ts`, que **está vacío a la espera de
-  datos**.
+  fuente de verdad. Lee los casos de `reference/glide-results.csv` (el mismo CSV
+  y el mismo parser que `npm run glide:compare`) y lo que se espera de cada uno
+  de `reference/glide-baseline.json`: los que no están en la baseline tienen que
+  coincidir con Glide, y los 23 conocidos se comprueban con `it.fails`, así que
+  el test salta también cuando uno **deja** de fallar.
 
 ### Cómo cazar una discrepancia
 
 1. Abre la app de Glide y apunta un caso: modo, peso efectivo y las series que
    muestra.
-2. Añade la fila a `src/lib/__fixtures__/glide-reference.ts` (el fichero explica
-   el formato).
-3. `npm test`. Si falla, tienes la discrepancia localizada con nombre y
+2. Añade la fila a `reference/glide-results.csv` (formato arriba, en
+   "Comparación contra la app de Glide").
+3. `npm run glide:compare`. Te dice si el caso nuevo coincide o no, y lo mete en
+   `discrepancies.md` y en la baseline.
+4. `npm test`. Si falla, tienes la discrepancia localizada con nombre y
    apellidos.
-4. Corrige la fórmula, y actualiza la fila correspondiente de
-   `formulas.test.ts`.
+5. Corrige la fórmula, actualiza la fila correspondiente de `formulas.test.ts` y
+   vuelve a correr `npm run glide:compare` para regenerar el informe.

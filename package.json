@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run glide:check && tsc --noEmit && vite build",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "warmup:csv": "node scripts/generate-warmup-csv.ts"
+    "warmup:csv": "node scripts/generate-warmup-csv.ts",
+    "glide:compare": "node scripts/compare-glide.ts",
+    "glide:check": "node scripts/compare-glide.ts --check"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
