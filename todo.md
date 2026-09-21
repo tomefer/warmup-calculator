@@ -412,9 +412,10 @@ son justo los que más miran la app.
 >   app hace hoy, **bugs incluidos**. Es la red de seguridad para tocar las fórmulas.
 > - `src/lib/formulas.invariants.test.ts` — los invariantes de la tabla de arriba en
 >   bucle de 2.5 a 180 kg, más la lista de duplicados conocidos (BUG-01 y BUG-05).
-> - `src/lib/glide-parity.test.ts` — paridad contra Glide, leyendo
->   `src/lib/__fixtures__/glide-reference.ts`. **Vacío**: es donde hay que volcar los
->   datos del punto 2 de "Información que falta".
+> - `src/lib/glide-parity.test.ts` — paridad contra Glide, leyendo la captura de
+>   `reference/glide-results.csv` y la baseline de `reference/glide-baseline.json`.
+>   32 casos: 9 coinciden y 23 son discrepancias conocidas, desglosadas en
+>   `discrepancies.md`. El build las vigila con `npm run glide:check`.
 >
 > **Punto ciego conocido:** el invariante de múltiplos de 2.5 recorre solo entradas
 > múltiplo de 2.5, así que hoy **no** detecta BUG-04. Para cubrirlo hay que barrer en
