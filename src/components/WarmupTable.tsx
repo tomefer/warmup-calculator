@@ -24,9 +24,10 @@ export function WarmupTable({ sets, className }: WarmupTableProps) {
       <h2 className="text-base text-[var(--muted-foreground)]">
         {t.warmup.sectionTitle}
       </h2>
-      {/* Glide no dibuja tabla ni tarjeta: reparte las series en columnas con
-          el peso arriba en gris y las repeticiones debajo en negro. */}
-      <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+      {/* La vista es responsive, igual que en Glide: en móvil cada serie es una
+          fila —peso a la izquierda en gris, repeticiones a la derecha, con su
+          línea separadora—, y a partir de `sm` pasa a columnas. */}
+      <div className="flex flex-col sm:grid sm:grid-cols-4 sm:gap-x-2 sm:gap-y-4">
         {sets.map((set, index) => {
           const isStringWeight = typeof set.weight === 'string'
           const isError = set.weight === 'tooLight'
@@ -35,9 +36,12 @@ export function WarmupTable({ sets, className }: WarmupTableProps) {
             <div
               key={index}
               className={cn(
-                'flex flex-col gap-0.5 text-sm',
+                'flex items-center justify-between gap-3 border-b border-[var(--border)] py-3 text-base',
+                // En columnas no hay filas que separar: el peso vuelve arriba
+                // y las repeticiones debajo, sin línea ni altura de fila.
+                'sm:flex-col sm:items-start sm:justify-start sm:gap-0.5 sm:border-0 sm:py-0 sm:text-sm',
                 // Los avisos son frases, no cifras: ocupan la fila entera.
-                isStringWeight && 'col-span-4'
+                isStringWeight && 'sm:col-span-4'
               )}
             >
               <span
