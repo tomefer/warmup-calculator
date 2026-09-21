@@ -18,7 +18,8 @@ import { fileURLToPath } from 'node:url'
 import {
   calculateDeadliftAfterSquat,
   calculateDeadliftNoSquat,
-  calculateSquatPress,
+  calculatePress,
+  calculateSquat,
 } from '../src/lib/formulas.ts'
 import type { WarmupResult, WarmupSet } from '../src/lib/formulas.ts'
 
@@ -34,12 +35,12 @@ const EXERCISES: Exercise[] = [
   {
     id: 'sentadilla',
     label: 'Sentadilla',
-    calculate: calculateSquatPress,
+    calculate: calculateSquat,
   },
   {
     id: 'press',
     label: 'Press',
-    calculate: calculateSquatPress,
+    calculate: calculatePress,
   },
   {
     id: 'peso-muerto',

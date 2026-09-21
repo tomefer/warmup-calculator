@@ -288,10 +288,23 @@ function buildMarkdown(comparisons: Comparison[], referencePath: string, notes: 
   )
   out.push('')
 
+  // Las notas a mano van siempre, haya fallos o no: cuando no los hay siguen
+  // diciendo qué falta por capturar de Glide, que es lo que queda por hacer.
+  const pushNotes = () => {
+    if (notes.trim() === '') return
+    out.push('## Análisis')
+    out.push('')
+    out.push('<!-- Escrito a mano en reference/glide-notas.md; se copia aquí tal cual. -->')
+    out.push('')
+    out.push(notes.trim())
+    out.push('')
+  }
+
   if (failures.length === 0) {
     out.push('No hay discrepancias: nuestra app da exactamente lo mismo que Glide en todos')
     out.push('los casos capturados.')
     out.push('')
+    pushNotes()
   } else {
     out.push('## Resumen por modo')
     out.push('')
@@ -318,14 +331,7 @@ function buildMarkdown(comparisons: Comparison[], referencePath: string, notes: 
     }
     out.push('')
 
-    if (notes.trim() !== '') {
-      out.push('## Análisis')
-      out.push('')
-      out.push('<!-- Escrito a mano en reference/glide-notas.md; se copia aquí tal cual. -->')
-      out.push('')
-      out.push(notes.trim())
-      out.push('')
-    }
+    pushNotes()
 
     for (const mode of MODES) {
       const bad = failures.filter((c) => c.case.mode.id === mode.id)

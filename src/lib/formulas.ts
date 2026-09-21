@@ -11,6 +11,66 @@ export type WarmupResult = {
 const roundTo2_5 = (x: number): number => Math.round(x / 2.5) * 2.5
 const ceilTo2_5 = (x: number): number => Math.ceil(x / 2.5) * 2.5
 
+/** Literales que la tabla pinta como texto en vez de como kilos. */
+const TOO_LIGHT: WarmupResult = { sets: [{ weight: 'tooLight', reps: '' }], outOfRange: false }
+const OUT_OF_RANGE: WarmupResult = { sets: [], outOfRange: true }
+
+/** Por encima de este peso Glide no calcula: "¡Ya eres experto, calcúlalo tú!". */
+const MAX_EFFECTIVE = 180
+
+// ---------------------------------------------------------------------------
+// Repeticiones
+// ---------------------------------------------------------------------------
+
+/**
+ * Escalera de repeticiones.
+ *
+ * Glide no fija las reps por posición: las hace **descender hasta `x1` en la
+ * última serie**, así que cuál sale en cada sitio depende de cuántas series
+ * tenga el calentamiento. Cuando hay una serie menos, la que desaparece es la
+ * de `x3`: sentadilla con cuatro series pasa de `x4` directamente a `x2`.
+ *
+ * Por eso las reps se aplican al final, con la lista de pesos ya cerrada, en
+ * vez de escribirlas al construir cada serie.
+ */
+type RepLadder = Record<number, readonly string[]>
+
+const SQUAT_REPS: RepLadder = {
+  4: ['x5x2', 'x4', 'x2', 'x1'],
+  5: ['x5x2', 'x4', 'x3', 'x2', 'x1'],
+}
+
+/** Igual que sentadilla, pero la serie base es `x5`: en Presses no se dobla. */
+const PRESS_REPS: RepLadder = {
+  4: ['x5', 'x4', 'x2', 'x1'],
+  5: ['x5', 'x4', 'x3', 'x2', 'x1'],
+}
+
+const DEADLIFT_AFTER_SQUAT_REPS: RepLadder = {
+  3: ['x5', 'x2', 'x1'],
+  4: ['x5', 'x3', 'x2', 'x1'],
+}
+
+/** Siempre cinco series, con el RDL de barra vacía delante. */
+const DEADLIFT_NO_SQUAT_REPS: RepLadder = {
+  5: ['x8', 'x5', 'x4', 'x2', 'x1'],
+}
+
+function withReps(weights: (number | string)[], ladder: RepLadder): WarmupResult {
+  const reps = ladder[weights.length]
+  if (!reps) {
+    throw new Error(
+      `No hay escalera de repeticiones para ${weights.length} series: ` +
+        `las definidas son ${Object.keys(ladder).join(', ')}.`
+    )
+  }
+  return { sets: weights.map((weight, i) => ({ weight, reps: reps[i] })), outOfRange: false }
+}
+
+// ---------------------------------------------------------------------------
+// Pesos
+// ---------------------------------------------------------------------------
+
 function calculateLastSet(effective: number, set0: number): number {
   if (effective <= 17.5) {
     return Math.max(ceilTo2_5(effective - 2.5), set0)
@@ -43,69 +103,83 @@ function getSquatPressBaseWeight(effective: number): number | null {
   return null
 }
 
-export function calculateSquatPress(effective: number): WarmupResult {
-  if (effective > 180) {
-    return { sets: [], outOfRange: true }
-  }
-
+/**
+ * Los pesos de sentadilla y press, que en Glide son **los mismos**: entre las
+ * dos pestañas solo cambian las repeticiones de la primera serie.
+ *
+ * Devuelve `null` si el peso es tan bajo que no hay calentamiento que dar.
+ */
+function squatPressWeights(effective: number): number[] | null {
   const set0 = getSquatPressBaseWeight(effective)
-  if (set0 === null) {
-    return { sets: [{ weight: 'tooLight', reps: '' }], outOfRange: false }
-  }
+  if (set0 === null) return null
 
-  const sets: WarmupSet[] = []
-  sets.push({ weight: set0, reps: 'x5x2' })
+  const weights: number[] = [set0]
 
-  // Set 1 (x4)
-  let set1: number
+  // Serie intermedia baja
   if (effective < 60) {
-    set1 = roundTo2_5(set0 + (0.9 * effective - set0) / 3)
+    weights.push(roundTo2_5(set0 + (0.9 * effective - set0) / 3))
   } else if (effective < 112.5) {
-    set1 = ceilTo2_5(0.5 * effective)
+    weights.push(ceilTo2_5(0.5 * effective))
   } else {
-    set1 = 60
+    weights.push(60)
   }
-  sets.push({ weight: set1, reps: 'x4' })
 
-  // Set 2 (x3)
-  let set2: number
+  // Serie intermedia alta. Por encima de 60 kg es el 70 % topado a 100: el
+  // tope solo entra en juego a partir de ~140 kg.
   if (effective < 60) {
-    set2 = roundTo2_5(set0 + 2 * (0.9 * effective - set0) / 3)
-  } else if (effective < 112.5) {
-    set2 = ceilTo2_5(0.7 * effective)
+    weights.push(roundTo2_5(set0 + (2 * (0.9 * effective - set0)) / 3))
   } else {
-    set2 = Math.min(ceilTo2_5(0.8 * effective), 140)
+    weights.push(Math.min(ceilTo2_5(0.7 * effective), 100))
   }
-  sets.push({ weight: set2, reps: 'x3' })
 
-  // Set 3 (x2) - only if effective >= 112.5
+  // Serie extra: a partir de 112.5 kg Glide mete una más, al 80 % topado a 140.
   if (effective >= 112.5) {
-    const set3 = Math.min(ceilTo2_5(0.8 * effective), 140)
-    sets.push({ weight: set3, reps: 'x2' })
+    weights.push(Math.min(ceilTo2_5(0.8 * effective), 140))
   }
 
-  // Last set (x1)
-  const lastSet = calculateLastSet(effective, set0)
-  sets.push({ weight: lastSet, reps: 'x1' })
+  weights.push(calculateLastSet(effective, set0))
 
-  return { sets, outOfRange: false }
+  return weights
+}
+
+export function calculateSquat(effective: number): WarmupResult {
+  if (effective > MAX_EFFECTIVE) return OUT_OF_RANGE
+
+  const weights = squatPressWeights(effective)
+  if (weights === null) return TOO_LIGHT
+
+  return withReps(weights, SQUAT_REPS)
+}
+
+/**
+ * Press (militar o banca).
+ *
+ * Mismos pesos que sentadilla; lo único distinto es la serie base, que en la
+ * pestaña de Presses es `x5` y no `x5x2` (sentadilla lleva ahí la nota al pie
+ * "si no es el primer ejercicio, hacer sólo 1 serie").
+ */
+export function calculatePress(effective: number): WarmupResult {
+  if (effective > MAX_EFFECTIVE) return OUT_OF_RANGE
+
+  const weights = squatPressWeights(effective)
+  if (weights === null) return TOO_LIGHT
+
+  return withReps(weights, PRESS_REPS)
 }
 
 /**
  * Press cuando ya se ha hecho otro press antes (militar tras banca o al revés).
  *
  * Los pesos son exactamente los del press normal: lo único que cambia son las
- * repeticiones, porque ya se llega caliente. La serie base baja de dos series
- * de 5 a una sola, y las de arriba pasan a 2, 1 y 1.
+ * repeticiones, porque ya se llega caliente. Aquí no hay escalera por número
+ * de series —la segunda serie baja a `x2` y de ahí en adelante todo es `x1`—,
+ * así que se deriva del press en lugar de duplicar las fórmulas.
  *
- *   normal:  set0 x5x2 | set1 x4 | set2 x3 | [set3 x2] | último x1
- *   previo:  set0 x5   | set1 x2 | set2 x1 | [set3 x1] | último x1
- *
- * Se deriva del press normal en lugar de duplicar las fórmulas, para que
- * cualquier corrección de pesos valga para los dos modos a la vez.
+ *   press:  set0 x5 | set1 x4 | set2 x2 | [extra x2] | último x1
+ *   previo: set0 x5 | set1 x2 | set2 x1 | [extra x1] | último x1
  */
 export function calculatePressAfterPress(effective: number): WarmupResult {
-  const base = calculateSquatPress(effective)
+  const base = calculatePress(effective)
 
   if (base.outOfRange) return base
   if (base.sets.some((s) => s.weight === 'tooLight')) return base
@@ -128,46 +202,25 @@ function getDeadliftNoSquatBaseWeight(effective: number): number {
 }
 
 export function calculateDeadliftNoSquat(effective: number): WarmupResult {
-  if (effective > 180) {
-    return { sets: [], outOfRange: true }
-  }
+  if (effective > MAX_EFFECTIVE) return OUT_OF_RANGE
+  if (effective < 15) return TOO_LIGHT
 
-  if (effective < 15) {
-    return { sets: [{ weight: 'tooLight', reps: '' }], outOfRange: false }
-  }
-
-  const sets: WarmupSet[] = []
-
-  // Set -1: RDL with empty bar
-  sets.push({ weight: 'rdlEmptyBar', reps: 'x8' })
-
-  // Set 0 (x5)
   const set0 = getDeadliftNoSquatBaseWeight(effective)
-  sets.push({ weight: set0, reps: 'x5' })
 
-  // Set 1 (x4)
-  let set1: number
+  // La primera es el RDL con la barra vacía, que este modo añade delante.
+  const weights: (number | string)[] = ['rdlEmptyBar', set0]
+
   if (effective < 120) {
-    set1 = roundTo2_5(set0 + (0.9 * effective - set0) / 3)
+    weights.push(roundTo2_5(set0 + (0.9 * effective - set0) / 3))
+    weights.push(roundTo2_5(set0 + (2 * (0.9 * effective - set0)) / 3))
   } else {
-    set1 = Math.min(ceilTo2_5(0.65 * effective), 100)
+    weights.push(Math.min(ceilTo2_5(0.65 * effective), 100))
+    weights.push(Math.min(ceilTo2_5(0.8 * effective), 140))
   }
-  sets.push({ weight: set1, reps: 'x4' })
 
-  // Set 2 (x2)
-  let set2: number
-  if (effective < 120) {
-    set2 = roundTo2_5(set0 + 2 * (0.9 * effective - set0) / 3)
-  } else {
-    set2 = Math.min(ceilTo2_5(0.8 * effective), 140)
-  }
-  sets.push({ weight: set2, reps: 'x2' })
+  weights.push(calculateLastSet(effective, set0))
 
-  // Last set (x1)
-  const lastSet = calculateLastSet(effective, set0)
-  sets.push({ weight: lastSet, reps: 'x1' })
-
-  return { sets, outOfRange: false }
+  return withReps(weights, DEADLIFT_NO_SQUAT_REPS)
 }
 
 function getDeadliftAfterSquatBaseWeight(effective: number): number {
@@ -179,38 +232,24 @@ function getDeadliftAfterSquatBaseWeight(effective: number): number {
 }
 
 export function calculateDeadliftAfterSquat(effective: number): WarmupResult {
-  if (effective > 180) {
-    return { sets: [], outOfRange: true }
-  }
+  if (effective > MAX_EFFECTIVE) return OUT_OF_RANGE
+  if (effective < 15) return TOO_LIGHT
 
-  if (effective < 15) {
-    return { sets: [{ weight: 'tooLight', reps: '' }], outOfRange: false }
-  }
-
-  const sets: WarmupSet[] = []
-
-  // Set 0 (x5)
   const set0 = getDeadliftAfterSquatBaseWeight(effective)
-  sets.push({ weight: set0, reps: 'x5' })
+  const weights: number[] = [set0]
 
-  // Set 1 (x3)
-  let set1: number
   if (effective < 112.5) {
-    set1 = roundTo2_5(set0 + (0.9 * effective - set0) / 2)
+    weights.push(roundTo2_5(set0 + (0.9 * effective - set0) / 2))
   } else {
-    set1 = Math.min(ceilTo2_5(0.7 * effective), 100)
+    weights.push(Math.min(ceilTo2_5(0.7 * effective), 100))
   }
-  sets.push({ weight: set1, reps: 'x3' })
 
-  // Set 2 (x1) - only for effective >= 112.5
+  // Igual que en sentadilla, a partir de 112.5 kg aparece una serie más.
   if (effective >= 112.5) {
-    const set2 = Math.min(ceilTo2_5(0.8 * effective), 140)
-    sets.push({ weight: set2, reps: 'x1' })
+    weights.push(Math.min(ceilTo2_5(0.8 * effective), 140))
   }
 
-  // Last set (x1)
-  const lastSet = calculateLastSet(effective, set0)
-  sets.push({ weight: lastSet, reps: 'x1' })
+  weights.push(calculateLastSet(effective, set0))
 
-  return { sets, outOfRange: false }
+  return withReps(weights, DEADLIFT_AFTER_SQUAT_REPS)
 }

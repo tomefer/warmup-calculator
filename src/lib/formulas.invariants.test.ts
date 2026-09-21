@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  calculateSquatPress,
+  calculateSquat,
+  calculatePress,
   calculateDeadliftAfterSquat,
   calculateDeadliftNoSquat,
   type WarmupResult,
@@ -25,7 +26,8 @@ const numericWeights = (r: WarmupResult): number[] =>
   r.sets.map((s) => s.weight).filter((x): x is number => typeof x === 'number')
 
 const modes: [string, (w: number) => WarmupResult][] = [
-  ['sentadilla / press', calculateSquatPress],
+  ['sentadilla', calculateSquat],
+  ['press', calculatePress],
   ['peso muerto con sentadilla previa', calculateDeadliftAfterSquat],
   ['peso muerto sin sentadilla previa', calculateDeadliftNoSquat],
 ]
@@ -66,10 +68,13 @@ describe.each(modes)('%s', (_label, fn) => {
  * listas de sospechosos para la paridad con Glide. Los tests fijan la lista
  * ACTUAL, así que al corregir una fórmula fallarán y habrá que recortarla.
  *
- * El caso gordo es sentadilla/press a partir de 112.5 kg: ahí `set2` y `set3`
- * usan exactamente la misma fórmula — `min(ceil(0.8 × ef), 140)` — en
- * `formulas.ts`, así que salen siempre iguales. Es el primer sitio donde
- * mirar. En pesos bajos los duplicados son más benignos (suelo de la barra).
+ * Lo que queda son duplicados benignos de pesos bajos: ahí las series chocan
+ * contra el suelo de la barra y no hay sitio para escalonarlas. Glide hace lo
+ * mismo (`deadliftAfterSquat@15` es `15 x5 | 15 x2 | 15 x1` en la captura).
+ *
+ * El duplicado que sí era un bug —sentadilla/press a partir de 112.5 kg, donde
+ * `set2` y `set3` usaban la misma fórmula `min(ceil(0.8 × ef), 140)`— ya no
+ * está: la serie de `x3` va al 70 % topado a 100.
  */
 describe('series duplicadas consecutivas (bugs conocidos)', () => {
   const duplicatesFor = (fn: (w: number) => WarmupResult): number[] =>
@@ -78,12 +83,8 @@ describe('series duplicadas consecutivas (bugs conocidos)', () => {
       return nums.some((n, i) => i > 0 && n === nums[i - 1])
     })
 
-  it('sentadilla / press: duplica en todo el rango alto (≥ 112.5 kg)', () => {
-    expect(duplicatesFor(calculateSquatPress)).toEqual([
-      5, 7.5, 10, 12.5, 15, 17.5, 22.5, 112.5, 115, 117.5, 120, 122.5, 125,
-      127.5, 130, 132.5, 135, 137.5, 140, 142.5, 145, 147.5, 150, 152.5, 155,
-      157.5, 160, 162.5, 165, 167.5, 170, 172.5, 175, 177.5, 180,
-    ])
+  it('sentadilla / press: solo pesos bajos', () => {
+    expect(duplicatesFor(calculateSquat)).toEqual([5, 7.5, 10, 12.5, 15, 17.5, 22.5])
   })
 
   it('peso muerto con sentadilla previa: solo pesos bajos', () => {

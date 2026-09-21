@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { t } from '@/lib/i18n'
-import { calculateSquatPress } from '@/lib/formulas'
+import { calculateSquat } from '@/lib/formulas'
 import { useWeightsStore } from '@/store/weights'
 import { WeightInput } from '@/components/WeightInput'
 import { WarmupTable } from '@/components/WarmupTable'
@@ -12,7 +12,7 @@ function SquatPage() {
 
   const result = useMemo(() => {
     if (squatWeight === null || squatWeight <= 0) return null
-    return calculateSquatPress(squatWeight)
+    return calculateSquat(squatWeight)
   }, [squatWeight])
 
   return (

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { t } from '@/lib/i18n'
-import { calculatePressAfterPress, calculateSquatPress } from '@/lib/formulas'
+import { calculatePress, calculatePressAfterPress } from '@/lib/formulas'
 import { useWeightsStore } from '@/store/weights'
 import { WeightInput } from '@/components/WeightInput'
 import { WarmupTable } from '@/components/WarmupTable'
@@ -22,7 +22,7 @@ function PressPage() {
     // que `pressAltWeight` no entra en el cálculo: se guarda como recordatorio.
     return altMode
       ? calculatePressAfterPress(pressWeight)
-      : calculateSquatPress(pressWeight)
+      : calculatePress(pressWeight)
   }, [pressWeight, altMode])
 
   return (

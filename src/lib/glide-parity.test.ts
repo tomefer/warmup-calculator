@@ -20,10 +20,13 @@ import {
  *
  *   - Si NO está en la baseline, tiene que coincidir con Glide. Si falla, es
  *     una regresión.
- *   - Si SÍ está, es una discrepancia conocida (hoy 23; ver `discrepancies.md`
- *     y `reference/glide-notas.md`) y se comprueba con `it.fails`: el test
- *     salta en cuanto **deja** de fallar, que es la señal de que hay que
- *     regenerar el informe con `npm run glide:compare`.
+ *   - Si SÍ está, es una discrepancia conocida (ver `discrepancies.md` y
+ *     `reference/glide-notas.md`) y se comprueba con `it.fails`: el test salta
+ *     en cuanto **deja** de fallar, que es la señal de que hay que regenerar
+ *     el informe con `npm run glide:compare`.
+ *
+ * Hoy la baseline está vacía: los 32 casos capturados coinciden con Glide, así
+ * que el segundo bloque no llega a declararse.
  *
  * Es la misma regla que aplica `npm run glide:check` en el build, contada caso
  * por caso.
@@ -58,9 +61,13 @@ describe('paridad con la app de Glide', () => {
     })
   })
 
-  describe('discrepancias conocidas (ver discrepancies.md)', () => {
-    it.fails.each(expectedToFail)('$mode.id @ $effective kg', (c) => {
-      expect(ours(c)).toBe(formatSeries(c.glide))
+  // `it.each([])` sin casos hace fallar la suite entera, así que el bloque
+  // solo se declara si queda alguna discrepancia que dar por conocida.
+  if (expectedToFail.length > 0) {
+    describe('discrepancias conocidas (ver discrepancies.md)', () => {
+      it.fails.each(expectedToFail)('$mode.id @ $effective kg', (c) => {
+        expect(ours(c)).toBe(formatSeries(c.glide))
+      })
     })
-  })
+  }
 })

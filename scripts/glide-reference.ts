@@ -19,8 +19,9 @@ import { fileURLToPath } from 'node:url'
 import {
   calculateDeadliftAfterSquat,
   calculateDeadliftNoSquat,
+  calculatePress,
   calculatePressAfterPress,
-  calculateSquatPress,
+  calculateSquat,
 } from '../src/lib/formulas.ts'
 import type { WarmupResult } from '../src/lib/formulas.ts'
 
@@ -43,8 +44,8 @@ export type Mode = {
 }
 
 export const MODES: Mode[] = [
-  { id: 'squat', label: 'Sentadilla', calculate: calculateSquatPress },
-  { id: 'press', label: 'Press', calculate: calculateSquatPress },
+  { id: 'squat', label: 'Sentadilla', calculate: calculateSquat },
+  { id: 'press', label: 'Press', calculate: calculatePress },
   { id: 'pressAfterPress', label: 'Press con press previo', calculate: calculatePressAfterPress },
   {
     id: 'deadliftAfterSquat',

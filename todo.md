@@ -6,26 +6,31 @@ y la app original de Glide** (ver sección "Discrepancias conocidas" del README)
 Auditoría hecha el 2026-09-21 sobre el commit `efda391`. `npx tsc --noEmit` pasa limpio: ninguno de
 estos bugs es un error de tipos, todos son de lógica o de comportamiento.
 
-> ## ⚠️ Ya hay datos reales de Glide (2026-09-21)
+> ## ✅ Paridad con Glide: 32 de 32 (2026-09-21)
 >
-> `reference/glide-results.csv` tiene 32 casos capturados de la app original, y
-> `npm test` los contrasta caso por caso. Eso cambia cómo se trabaja este documento:
-> **antes de aplicar cualquier "arreglo propuesto", mira si los datos lo respaldan.**
-> Ya ha pasado con BUG-02, cuyo arreglo propuesto rompería tres casos que hoy pasan.
+> Las 23 discrepancias que había están **cerradas**. `npm run glide:check` da 0, y
+> el build lo vigila. Lo que se hizo, con el detalle en `reference/glide-notas.md`:
 >
-> El desglose de las 23 discrepancias vivas está en `reference/glide-notas.md`, y
-> agrupa en **cinco causas** que este documento no tenía identificadas. Dos de ellas
-> no corresponden a ningún BUG de la lista de abajo:
+> - **Las reps ya no van por posición, van por escalera.** En Glide descienden hasta
+>   `x1` en la última serie, así que cuál sale en cada sitio depende de cuántas
+>   series haya: con 4 se pasa de `x4` a `x2` y el `x3` no aparece. Ahora las
+>   fórmulas construyen la lista de pesos y `withReps()` les pega la escalera al
+>   final. Cerró 14 de las 23.
+> - **El press tiene función propia.** `calculateSquat` y `calculatePress` comparten
+>   pesos (`squatPressWeights`) y se diferencian solo en la serie base: `x5x2` con
+>   nota al pie en sentadilla, `x5` pelado en press. Cerró los 6 casos de press.
+> - **BUG-01**, la serie `x3` que usaba la fórmula de la `x2`. Cerró los 5 restantes
+>   y, de paso, los pesos duplicados de todo el rango alto.
 >
-> - **Las reps van por posición y deberían ir por escalera.** Emitimos `x3` fijo en
->   la serie 2 pase lo que pase; en Glide las reps descienden hasta `x1` según
->   cuántas series haya, así que con 4 series se pasa de `x4` a `x2` y el `x3` no
->   aparece. Es la causa de 14 de las 23 discrepancias — la más grande de todas.
-> - **El press muestra `x5x2` donde Glide muestra `x5`.** `press.tsx` reutiliza
->   `calculateSquatPress`, y ese `x5x2` es la etiqueta de *sentadilla*. Afecta a los
->   6 casos de press.
+> **Lo que sigue abierto y ahora es lo más gordo: BUG-04.** La paridad está
+> comprobada sobre 32 pesos, todos múltiplo de 2,5. Barriendo de 0,5 en 0,5 hay 68
+> pesos por modo donde sacamos series no montables (`18 kg` → `… | 15 | 15.5`), y un
+> caso donde una serie baja (`deadliftAfterSquat@19.5` → `15 | 17.5 | 17`). No se ha
+> tocado porque puede que Glide haga lo mismo. Se decide capturando **cuatro** pesos
+> de Glide: 18, 19.5, 31 y 46.5.
 >
-> Lo que ya coincide al 100%: peso muerto sin sentadilla, reps incluidas.
+> **Antes de aplicar cualquier "arreglo propuesto", mira si los datos lo respaldan.**
+> Ya pasó con BUG-02, cuyo arreglo propuesto rompería tres casos que hoy pasan.
 
 ## Cómo trabajar este documento
 
@@ -67,10 +72,16 @@ Invariantes que se comprobaron simulando los tres cálculos de 5 a 180 kg en pas
 
 ## Prioridad alta
 
-### [ ] BUG-01 — La serie ×3 y la ×2 dan el mismo peso en sentadilla/press ≥112.5 kg
+### [x] BUG-01 — La serie ×3 y la ×2 dan el mismo peso en sentadilla/press ≥112.5 kg — **RESUELTO**
 
-> **CONFIRMADO POR LOS DATOS DE GLIDE — y ya no está bloqueado** (2026-09-21).
-> `reference/glide-results.csv` zanja las dos preguntas abiertas de esta sección:
+> **RESUELTO** (2026-09-21). La serie `x3` pasó a `Math.min(ceilTo2_5(0.7 * effective), 100)`,
+> que además unifica el tramo: a partir de 60 kg hay una sola rama, sin salto en
+> 112,5. Después: `112.5 → 80`, `140 → 100`, `180 → 100`, los tres iguales a Glide.
+> Cerró también `pressAfterPress@140` y vació la lista de duplicados del rango alto
+> en `formulas.invariants.test.ts`. La baseline se regeneró y quedó vacía.
+>
+> **CONFIRMADO POR LOS DATOS DE GLIDE** (2026-09-21).
+> `reference/glide-results.csv` zanjó las dos preguntas abiertas de esta sección:
 >
 > | Peso | Glide `x3` | Nosotros | `min(ceilTo2_5(0.7 × ef), 100)` |
 > |---:|---:|---:|---:|
@@ -337,9 +348,19 @@ resultado en la práctica.
 
 ---
 
-### [ ] BUG-04 — Pesos no cargables con entradas que no son múltiplo de 2.5
+### [ ] BUG-04 — Pesos no cargables con entradas que no son múltiplo de 2.5 — **PRIORIDAD ALTA**
 
-**Fichero:** `src/lib/formulas.ts:18` y `:22`
+> **Es el bug abierto más grande** desde que cayó la paridad de los 32 casos
+> (2026-09-21). El barrido de 0,5 a 180 kg de 0,5 en 0,5 lo cuantifica: **68 pesos
+> por modo**, todos de estas dos ramas, más un caso en el que una serie **baja**
+> respecto a la anterior (`deadliftAfterSquat@19.5` → `15 | 17.5 | 17`).
+>
+> **Requiere confirmación, pero barata:** basta con mirar en Glide los pesos
+> **18, 19.5, 31 y 46.5**. Si da `15,5` y `17` como nosotros, se anotan en el CSV y
+> el bug se cierra como "así es Glide". Si redondea, el arreglo es el de abajo.
+> Detalle en `reference/glide-notas.md`, sección «El hueco de los 0,5 kg».
+
+**Fichero:** `src/lib/formulas.ts`, las dos ramas de resta de `calculateLastSet`
 
 **Síntoma:** dos tramos de `calculateLastSet` restan sin redondear:
 
@@ -458,14 +479,15 @@ son justo los que más miran la app.
 >
 > Tres ficheros, con papeles distintos:
 >
-> - `src/lib/formulas.test.ts` — caracterización: 34 pesos × 4 modos, fijando lo que la
+> - `src/lib/formulas.test.ts` — caracterización: 34 pesos × 5 modos, fijando lo que la
 >   app hace hoy, **bugs incluidos**. Es la red de seguridad para tocar las fórmulas.
 > - `src/lib/formulas.invariants.test.ts` — los invariantes de la tabla de arriba en
->   bucle de 2.5 a 180 kg, más la lista de duplicados conocidos (BUG-01 y BUG-05).
+>   bucle de 2.5 a 180 kg, más la lista de duplicados conocidos (hoy solo BUG-05:
+>   los del rango alto cayeron con BUG-01).
 > - `src/lib/glide-parity.test.ts` — paridad contra Glide, leyendo la captura de
 >   `reference/glide-results.csv` y la baseline de `reference/glide-baseline.json`.
->   32 casos: 9 coinciden y 23 son discrepancias conocidas, desglosadas en
->   `discrepancies.md`. El build las vigila con `npm run glide:check`.
+>   32 casos, los 32 coinciden; la baseline está vacía. El build lo vigila con
+>   `npm run glide:check`.
 >
 > **Punto ciego conocido:** el invariante de múltiplos de 2.5 recorre solo entradas
 > múltiplo de 2.5, así que hoy **no** detecta BUG-04. Para cubrirlo hay que barrer en

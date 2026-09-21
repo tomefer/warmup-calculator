@@ -18,7 +18,9 @@ Al abrir la app en el navegador del móvil, aparecerá la opción de "Añadir a 
 
 ## Estado actual de las fórmulas
 
-Las fórmulas de cálculo se extrajeron directamente del JSON de configuración de la app Glide original. Sin embargo, **hay discrepancias entre los resultados de ambas apps** que aún no hemos podido identificar del todo.
+Las fórmulas de cálculo se extrajeron directamente del JSON de configuración de la app Glide original. Hoy **coinciden con Glide en los 32 casos capturados** (`npm run glide:check` da 0 discrepancias, y el build lo vigila).
+
+Ojo con el alcance: los 32 pesos capturados son todos múltiplo de 2,5 kg. Entre ellos las fórmulas interpolan sin comprobar, y en las entradas que no caen en esa rejilla hay series no montables con discos — ver BUG-04 en [`todo.md`](todo.md) y la sección «El hueco de los 0,5 kg» de [`reference/glide-notas.md`](reference/glide-notas.md).
 
 ### Lógica implementada
 
@@ -36,12 +38,26 @@ El calentamiento se construye en 4-5 series partiendo de un peso base (`set0`) h
 | ≥ 5 kg | 5 kg |
 
 **Series intermedias:**
-- Serie 1 (×4): interpolación 1/3 entre set0 y el 90% del efectivo, redondeada a 2.5 kg
-- Serie 2 (×3): interpolación 2/3 entre set0 y el 90% del efectivo, redondeada a 2.5 kg
-- Serie 3 (×2): solo si efectivo ≥ 112.5 kg → `MIN(CEILING(0.8 × ef / 2.5) × 2.5, 140)`
+- Serie 1: por debajo de 60 kg, interpolación 1/3 entre set0 y el 90% del efectivo; de 60 a 112.5 kg, `CEILING(0.5 × ef)`; por encima, fija en 60 kg
+- Serie 2: por debajo de 60 kg, interpolación 2/3; a partir de 60 kg, `MIN(CEILING(0.7 × ef / 2.5) × 2.5, 100)`
+- Serie 3: solo si efectivo ≥ 112.5 kg → `MIN(CEILING(0.8 × ef / 2.5) × 2.5, 140)`
 
 **Serie última (×1):**
 Aproximación al 90% del efectivo con redondeo fino según tramos.
+
+**Repeticiones:** no van por posición. En Glide descienden hasta ×1 en la última
+serie, así que dependen de cuántas series haya; con 4 series el ×3 no aparece.
+
+| Modo | 3 series | 4 series | 5 series |
+|---|---|---|---|
+| Sentadilla | — | `×5×2, ×4, ×2, ×1` | `×5×2, ×4, ×3, ×2, ×1` |
+| Press | — | `×5, ×4, ×2, ×1` | `×5, ×4, ×3, ×2, ×1` |
+| Peso muerto tras sentadilla | `×5, ×2, ×1` | `×5, ×3, ×2, ×1` | — |
+| Peso muerto sin sentadilla | — | — | `×8, ×5, ×4, ×2, ×1` |
+
+Sentadilla y press usan **los mismos pesos**; lo único que cambia es la serie
+base, que en sentadilla es ×5 ×2 (con la nota al pie "si no es el primer
+ejercicio, hacer sólo 1 serie") y en press es ×5.
 
 #### Press con press previo
 
@@ -51,9 +67,9 @@ porque ya llegas caliente. La serie base pasa de dos series de 5 a una sola.
 
 | Serie | Press normal | Con press previo |
 |---|---|---|
-| Base (set0) | ×5 ×2 | ×5 |
+| Base (set0) | ×5 | ×5 |
 | Set 1 | ×4 | ×2 |
-| Set 2 | ×3 | ×1 |
+| Set 2 | ×2 (×3 si hay 5 series) | ×1 |
 | Set 3 (si ≥ 112.5 kg) | ×2 | ×1 |
 | Última | ×1 | ×1 |
 
@@ -68,29 +84,22 @@ Añade una serie -1 de "RDL con barra vacía" (×8). El peso base es más alto q
 
 El peso base es menor (la sentadilla ya ha calentado). Solo 2 series intermedias antes de la última.
 
-### ⚠️ Discrepancias conocidas
+### Discrepancias conocidas: ninguna
 
-Los resultados de nuestra app y los de la app original de Glide no coinciden en
-todos los casos. Ya no es una sospecha: están **medidas y contadas** en
-[`discrepancies.md`](discrepancies.md), que se regenera con `npm run glide:compare`
-comparando contra la captura de Glide de [`reference/glide-results.csv`](reference/glide-results.csv).
+Los 32 casos capturados de la app original coinciden con los nuestros. Está
+**medido y contado** en [`discrepancies.md`](discrepancies.md), que se regenera
+con `npm run glide:compare` comparando contra la captura de Glide de
+[`reference/glide-results.csv`](reference/glide-results.csv).
 
-A día de hoy son 23 fallos sobre 32 casos capturados, y salen de cinco causas:
+Hubo 23 fallos, salidos de cinco causas; el desglose de qué era cada uno y cómo
+se cerró está en [`reference/glide-notas.md`](reference/glide-notas.md), que se
+copia dentro de `discrepancies.md`.
 
-1. **Las reps están fijadas por posición y en Glide dependen del número de
-   series.** Con 4 series Glide va `x5x2, x4, x2, x1`; nosotros metemos un `x3`
-   donde va el `x2`. Es la causa de 14 de los 23 fallos.
-2. **El press muestra `x5x2` en la primera serie**, que es la etiqueta de
-   sentadilla; en Glide es `x5`.
-3. **Series duplicadas en sentadilla/press a partir de 112,5 kg.** `set2` y
-   `set3` usan la misma fórmula, `min(ceil(0.8 × efectivo), 140)`. La captura
-   confirma que la serie `x3` debería ser `min(ceil(0.7 × efectivo), 100)`.
-4. **Peso muerto tras sentadilla**: misma causa que (1) con 3 series.
-5. **Peso muerto tras sentadilla a 140 kg**: damos dos `x1` seguidas.
-
-El análisis largo, con las tablas de qué da cada uno, está en
-[`reference/glide-notas.md`](reference/glide-notas.md) (que se copia dentro de
-`discrepancies.md`).
+**Lo que no está comprobado** es tan importante como lo que sí: la captura solo
+cubre pesos múltiplo de 2,5 kg entre 15 y 185. Faltan el tramo 100-112,5 (dónde
+salta exactamente de 4 a 5 series), los pesos por debajo de 15, el corte de
+181-184, y sobre todo **las entradas que no son múltiplo de 2,5** — ahí sacamos
+series no montables con discos, y sin capturas no se sabe si Glide hace lo mismo.
 
 **Si ves alguna discrepancia, abre un issue con:**
 - El ejercicio y modo (sentadilla / press normal / press con press previo / peso muerto con sentadilla / peso muerto sin sentadilla)
