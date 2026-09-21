@@ -10,38 +10,26 @@ import { cn } from '@/lib/utils'
 function DeadliftPage() {
   const deadliftWeight = useWeightsStore((s) => s.deadliftWeight)
   const setDeadliftWeight = useWeightsStore((s) => s.setDeadliftWeight)
-  const deadliftAltWeight = useWeightsStore((s) => s.deadliftAltWeight)
-  const setDeadliftAltWeight = useWeightsStore((s) => s.setDeadliftAltWeight)
 
   const [noSquatMode, setNoSquatMode] = useState(false)
 
+  // Los dos modos parten del mismo dato —el peso de la serie efectiva de hoy—,
+  // así que comparten peso guardado: el botón solo cambia de fórmula.
   const result = useMemo(() => {
-    if (noSquatMode) {
-      if (deadliftAltWeight === null || deadliftAltWeight <= 0) return null
-      return calculateDeadliftNoSquat(deadliftAltWeight)
-    }
-
     if (deadliftWeight === null || deadliftWeight <= 0) return null
-    return calculateDeadliftAfterSquat(deadliftWeight)
-  }, [deadliftWeight, deadliftAltWeight, noSquatMode])
+    return noSquatMode
+      ? calculateDeadliftNoSquat(deadliftWeight)
+      : calculateDeadliftAfterSquat(deadliftWeight)
+  }, [deadliftWeight, noSquatMode])
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
-      {!noSquatMode ? (
-        <WeightInput
-          value={deadliftWeight}
-          onChange={setDeadliftWeight}
-          label={t.input.label}
-          placeholder={t.input.placeholder}
-        />
-      ) : (
-        <WeightInput
-          value={deadliftAltWeight}
-          onChange={setDeadliftAltWeight}
-          label={t.deadlift.alternativeLabel}
-          placeholder={t.input.placeholder}
-        />
-      )}
+      <WeightInput
+        value={deadliftWeight}
+        onChange={setDeadliftWeight}
+        label={t.input.label}
+        placeholder={t.input.placeholder}
+      />
 
       <button
         type="button"

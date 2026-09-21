@@ -3,12 +3,20 @@ const STORAGE_KEYS = {
   pressWeight: 'warmup_press_weight',
   pressAltWeight: 'warmup_press_alt_weight',
   deadliftWeight: 'warmup_deadlift_weight',
-  deadliftAltWeight: 'warmup_deadlift_alt_weight',
 } as const
 
-export function saveWeight(key: keyof typeof STORAGE_KEYS, value: number): void {
+export function saveWeight(
+  key: keyof typeof STORAGE_KEYS,
+  value: number | null
+): void {
   try {
-    localStorage.setItem(STORAGE_KEYS[key], String(value))
+    // `null` es "el usuario ha vaciado el campo": se borra la clave en vez de
+    // guardar "null", que `loadWeight` leería como un número inválido.
+    if (value === null) {
+      localStorage.removeItem(STORAGE_KEYS[key])
+    } else {
+      localStorage.setItem(STORAGE_KEYS[key], String(value))
+    }
   } catch {
     // localStorage not available or quota exceeded
   }

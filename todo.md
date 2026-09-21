@@ -124,7 +124,14 @@ coeficiente y el tope hay que contrastarlos con la app original.
 
 ---
 
-### [ ] BUG-06 — No se pueden introducir pesos con decimales
+### [x] BUG-06 — No se pueden introducir pesos con decimales — **RESUELTO**
+
+> **Resuelto el 2026-09-21.** `WeightInput` pasa a controlarse con el texto crudo en
+> estado local y solo propaga hacia arriba el número parseado, así que `"7."` ya no se
+> reescribe a `"7"`. Acepta también la coma, que es lo que ofrece el teclado numérico
+> de un móvil en español. El parseo vive aparte en `src/lib/parse-weight.ts` para poder
+> probarlo sin DOM: `parse-weight.test.ts` cubre la secuencia real de teclas de `7.5`.
+> Verificado en el navegador tecla a tecla.
 
 **Fichero:** `src/components/WeightInput.tsx:22` y `:35`
 
@@ -171,7 +178,14 @@ el valor sobrevive a cambiar de pestaña y recargar la app.
 
 ---
 
-### [ ] BUG-07 — No se puede borrar el campo de peso
+### [x] BUG-07 — No se puede borrar el campo de peso — **RESUELTO**
+
+> **Resuelto el 2026-09-21** junto con BUG-06. Sobre la duda que planteaba esta sección:
+> se optó por propagar `null` en vez de mantener el último cálculo válido, porque dejar
+> la tabla colgada de un peso que ya no se ve en pantalla es justo la clase de confusión
+> que hace levantar el peso equivocado. `onChange` pasa a `(value: number | null) => void`,
+> los setters del store también, y `saveWeight(key, null)` borra la clave de localStorage
+> en lugar de guardar `"null"`.
 
 **Fichero:** `src/components/WeightInput.tsx:20`
 
@@ -302,7 +316,19 @@ cálculo, ya que el input acepta cualquier decimal. Decidir cuál de las dos (o 
 
 ---
 
-### [ ] BUG-09 — Peso muerto: los dos modos usan pesos guardados distintos
+### [x] BUG-09 — Peso muerto: los dos modos usan pesos guardados distintos — **RESUELTO**
+
+> **Resuelto el 2026-09-21.** Un único `WeightInput` con `t.input.label` y un único
+> `deadliftWeight`: el botón solo cambia de fórmula. `deadliftAltWeight` eliminado del
+> store y de `storage.ts`, y `t.deadlift.alternativeLabel` de `i18n.ts`.
+>
+> Sobre el "requiere confirmación" de esta sección: no hizo falta contrastarlo con Glide,
+> porque `calculateDeadliftNoSquat(effective)` siempre esperó el peso de la serie efectiva
+> —igual que el otro modo—, así que el segundo input alimentaba ese mismo hueco con una
+> etiqueta que pedía otra cosa. La etiqueta era el error, no la fórmula.
+>
+> Queda huérfana la clave `warmup_deadlift_alt_weight` en el localStorage de quien ya
+> usara la app. Es inerte: nadie la lee.
 
 **Fichero:** `src/routes/deadlift.tsx:21` y `:39`; etiquetas en `src/lib/i18n.ts`
 

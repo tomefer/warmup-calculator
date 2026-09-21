@@ -21,6 +21,5 @@ export const t = {
   },
   deadlift: {
     alternativeButton: 'Si NO has hecho sentadilla, dale aquí',
-    alternativeLabel: 'Introduce tu peso de calentamiento:',
   },
 } as const

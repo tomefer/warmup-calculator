@@ -6,12 +6,10 @@ interface WeightsState {
   pressWeight: number | null
   pressAltWeight: number | null
   deadliftWeight: number | null
-  deadliftAltWeight: number | null
-  setSquatWeight: (v: number) => void
-  setPressWeight: (v: number) => void
-  setPressAltWeight: (v: number) => void
-  setDeadliftWeight: (v: number) => void
-  setDeadliftAltWeight: (v: number) => void
+  setSquatWeight: (v: number | null) => void
+  setPressWeight: (v: number | null) => void
+  setPressAltWeight: (v: number | null) => void
+  setDeadliftWeight: (v: number | null) => void
 }
 
 export const useWeightsStore = create<WeightsState>((set) => ({
@@ -19,7 +17,6 @@ export const useWeightsStore = create<WeightsState>((set) => ({
   pressWeight: loadWeight('pressWeight'),
   pressAltWeight: loadWeight('pressAltWeight'),
   deadliftWeight: loadWeight('deadliftWeight'),
-  deadliftAltWeight: loadWeight('deadliftAltWeight'),
 
   setSquatWeight: (v) => {
     saveWeight('squatWeight', v)
@@ -39,10 +36,5 @@ export const useWeightsStore = create<WeightsState>((set) => ({
   setDeadliftWeight: (v) => {
     saveWeight('deadliftWeight', v)
     set({ deadliftWeight: v })
-  },
-
-  setDeadliftAltWeight: (v) => {
-    saveWeight('deadliftAltWeight', v)
-    set({ deadliftAltWeight: v })
   },
 }))
