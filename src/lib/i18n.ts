@@ -27,7 +27,7 @@ export const t = {
   press: {
     alternativePrompt: 'Si has hecho justo antes banca o press:',
     alternativeButton: 'Si has hecho press antes, dale aquí',
-    alternativeLabel: 'Introduce el peso del press anterior:',
+    alternativeInputLabel: 'Introduce el peso de tu segundo press del día:',
   },
   deadlift: {
     alternativePrompt: 'Si NO has hecho antes sentadillas:',

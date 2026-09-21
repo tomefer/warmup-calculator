@@ -6,6 +6,8 @@ interface WeightInputProps {
   value: number | null
   onChange: (value: number | null) => void
   label: string
+  /** Resalta la etiqueta cuando el modo activo cambia lo que se pide. */
+  emphasizeLabel?: boolean
   placeholder?: string
   className?: string
 }
@@ -14,6 +16,7 @@ export function WeightInput({
   value,
   onChange,
   label,
+  emphasizeLabel = false,
   placeholder = 'kg',
   className,
 }: WeightInputProps) {
@@ -49,8 +52,14 @@ export function WeightInput({
   return (
     <div className={cn('flex flex-col gap-3', className)}>
       {/* Glide pone la etiqueta en 18/600 y el campo como una banda gris sin
-          borde ni esquinas redondeadas. */}
-      <label className="text-lg font-semibold text-[var(--foreground)]">
+          borde ni esquinas redondeadas. Con la paleta nueva la etiqueta ya va
+          oscura y en 600, así que resaltarla es subirla a 700. */}
+      <label
+        className={cn(
+          'text-lg font-semibold text-[var(--foreground)]',
+          emphasizeLabel && 'font-bold'
+        )}
+      >
         {label}
       </label>
       <input

@@ -1,7 +1,6 @@
 const STORAGE_KEYS = {
   squatWeight: 'warmup_squat_weight',
   pressWeight: 'warmup_press_weight',
-  pressAltWeight: 'warmup_press_alt_weight',
   deadliftWeight: 'warmup_deadlift_weight',
 } as const
 
